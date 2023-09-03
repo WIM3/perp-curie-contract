@@ -43,7 +43,8 @@
     "lint-staged": "lint-staged",
     "prepack": "ts-node --files scripts/prepack.ts",
     "flatten": "ts-node --files scripts/flatten.ts",
-    "slither": "ts-node --files scripts/slither.ts"
+    "slither": "ts-node --files scripts/slither.ts",
+    "deploy:local": "hardhat deploy --network hardhat --tags all"
   },
   "dependencies": {
     "@chainlink/contracts": "0.1.7",
