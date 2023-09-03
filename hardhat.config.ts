@@ -4,6 +4,7 @@ import "@openzeppelin/hardhat-upgrades"
 import "@typechain/hardhat"
 import "hardhat-contract-sizer"
 import "hardhat-dependency-compiler"
+import 'hardhat-deploy'
 import "hardhat-gas-reporter"
 import { HardhatUserConfig } from "hardhat/config"
 import "solidity-coverage"
