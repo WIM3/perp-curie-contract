@@ -1,8 +1,12 @@
 export const HARDHAT_CHAINID = 31337
 export const GOERLI_CHAINID = 5
 
+interface ContractArguments {
+    name: string
+    usdc?: string
+}
 interface ConfigHelper {
-    [key: number]: any
+    [chainId: number]: ContractArguments
 }
 
 export const networkConfigHelper: ConfigHelper = {
