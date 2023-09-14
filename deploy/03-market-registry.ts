@@ -1,5 +1,5 @@
 import { smockit } from "@eth-optimism/smock"
-import { ethers, network, upgrades } from "hardhat"
+import { ethers, network } from "hardhat"
 import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { HARDHAT_CHAINID, isDevelopmentChain, networkConfigHelper } from "../helper.hardhat.config"
 import { verify } from "../scripts/verify"
@@ -12,7 +12,8 @@ import { UniswapV3Factory } from "../typechain"
 //       2.1.2. Quote token: the counter currency of base token, which is always vUSDC for any base token
 
 const deploy = async (hre: HardhatRuntimeEnvironment) => {
-    const { log } = hre.deployments
+    const { log, deploy } = hre.deployments
+    const { deployer } = await hre.getNamedAccounts()
     const chainId = network.config.chainId || HARDHAT_CHAINID
     log("#########################")
     log("# MarketRegistry Contract #")
@@ -27,15 +28,22 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
     await createPool(uniV3Factory, quoteTokenAddress, baseTokenAddress)
 
     log(`# Deploying MarketRegistry Contract to: ${chainId} ...`)
-    const marketRegistryFactory = await ethers.getContractFactory("MarketRegistry")
-    const marketRegistryContract = await upgrades.deployProxy(
-        marketRegistryFactory,
-        [uniV3Factory.address, quoteTokenAddress],
-        {
-            initializer: "initialize",
+    // const marketRegistryFactory = await ethers.getContractFactory("MarketRegistry")
+    const marketRegistryContract = await deploy("MarketRegistry", {
+        from: deployer,
+        args: [],
+        log: true,
+        proxy: {
+            owner: deployer,
+            proxyContract: "OpenZeppelinTransparentProxy",
+            execute: {
+                init: {
+                    methodName: "initialize",
+                    args: [uniV3Factory.address, quoteTokenAddress],
+                },
+            },
         },
-    )
-    await marketRegistryContract.deployed()
+    })
     log("# MarketRegistry contract deployed at address:", marketRegistryContract.address)
     log("#########################")
 
