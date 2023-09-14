@@ -10,23 +10,27 @@ import { UniswapV3Factory } from "../typechain"
 //    2.1. For each market, we deploy a pair of two virtual tokens (with no real value) and initiate a new Uniswap V3 pool to provide liquidity to.
 //       2.1.1. Base token: the virtual underlying asset users are trading for, such as vETH, vBTC
 //       2.1.2. Quote token: the counter currency of base token, which is always vUSDC for any base token
+
 const deploy = async (hre: HardhatRuntimeEnvironment) => {
     const { log } = hre.deployments
     const chainId = network.config.chainId || HARDHAT_CHAINID
     log("#########################")
     log("# MarketRegistry Contract #")
 
-    const usdcAddress = await deployQuoteToken(chainId)
-    const vethAddress = await deployBaseToken(chainId)
+    // I'm not sure about quote & base token deployment, so I just use USDC & vETH for now
+    // Looks like we need to deploy quote & base token for each market
+    const quoteTokenAddress = await deployQuoteToken(chainId)
+    const baseTokenAddress = await deployBaseToken(chainId)
+
     const uniV3Factory = await deployUniswapV3Factory()
     log("# Creating pool...")
-    await createPool(uniV3Factory, usdcAddress, vethAddress, chainId)
+    await createPool(uniV3Factory, quoteTokenAddress, baseTokenAddress)
 
     log(`# Deploying MarketRegistry Contract to: ${chainId} ...`)
     const marketRegistryFactory = await ethers.getContractFactory("MarketRegistry")
     const marketRegistryContract = await upgrades.deployProxy(
         marketRegistryFactory,
-        [uniV3Factory.address, usdcAddress],
+        [uniV3Factory.address, quoteTokenAddress],
         {
             initializer: "initialize",
         },
@@ -45,9 +49,11 @@ deploy.tags = ["marketreg", "all"]
 
 async function deployQuoteToken(chainId: number) {
     if (isDevelopmentChain(chainId)) {
+        console.log("# Deploying QuoteToken...")
         const quoteTokenFactory = await ethers.getContractFactory("QuoteToken")
         const quoteToken = await quoteTokenFactory.deploy()
         await quoteToken.initialize("TestUSDC", "USDC")
+        console.log(`# Deployed QuoteToken at address: ${quoteToken.address}`)
         networkConfigHelper[chainId].usdc = quoteToken.address
     }
 
@@ -87,16 +93,17 @@ async function deployBaseToken(chainId: number) {
     }
 
     console.log("# Deploying PriceFeedDispatcher...")
-    // FIXME:
     // This one is from perp-curie-contracts
     const priceFeedDispatcherFactory = await ethers.getContractFactory("PriceFeedDispatcher")
-    const priceFeedDispatcher = await priceFeedDispatcherFactory.deploy(priceFeedAddress.address)
+    const priceFeedDispatcher = await priceFeedDispatcherFactory.deploy(priceFeedAddress)
     console.log(`# Deployed priceFeedDispatcher at address: ${priceFeedDispatcher.address}}`)
 
     if (isDevelopmentChain(chainId)) {
+        console.log("# Deploying BaseToken...")
         const baseTokenFactory = await ethers.getContractFactory("BaseToken")
         const baseToken = await baseTokenFactory.deploy()
         await baseToken.initialize("VirtualETH", "vETH", priceFeedDispatcher.address)
+        console.log(`# Deployed BaseToken at address: ${baseToken.address}}`)
         networkConfigHelper[chainId].veth = baseToken.address
     }
 
@@ -108,13 +115,9 @@ async function deployUniswapV3Factory(): Promise<UniswapV3Factory> {
     return await factoryFactory.deploy()
 }
 
-async function createPool(
-    uniV3Factory: UniswapV3Factory,
-    baseTokenAddress: string,
-    quoteTokenAddress: string,
-    uniFee: number,
-) {
-    // TODO:
-
+async function createPool(uniV3Factory: UniswapV3Factory, quoteTokenAddress: string, baseTokenAddress: string) {
+    const uniFee = 3000
+    console.log(`# With quote token "${quoteTokenAddress}" and base token "${baseTokenAddress}"}`)
     await uniV3Factory.createPool(baseTokenAddress, quoteTokenAddress, uniFee)
+    console.log(`# Pool created`)
 }
