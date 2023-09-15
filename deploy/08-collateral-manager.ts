@@ -1,4 +1,4 @@
-import { network } from "hardhat"
+import { ethers, network } from "hardhat"
 import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { HARDHAT_CHAINID, isDevelopmentChain } from "../helper.hardhat.config"
 import { verify } from "../scripts/verify"
@@ -13,6 +13,14 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
 
     const clearingHouseConfig = await get("ClearingHouseConfig")
     const vault = await get("Vault")
+    const maxCollateralTokensPerAccountArg = 5
+    const debtNonSettlementTokenValueRatioArg = "800000"
+    const liquidationRatioArg = "500000"
+    const mmRatioBufferArg = "2000"
+    const clInsuranceFundFeeRatioArg = "30000"
+    const debtThresholdArg = ethers.utils.parseEther("10000")
+    const collateralValueDustArg = ethers.utils.parseEther("500")
+
     const collateralManagerContract = await deploy("CollateralManager", {
         from: deployer,
         args: [],
@@ -23,7 +31,17 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
             execute: {
                 init: {
                     methodName: "initialize",
-                    args: [clearingHouseConfig.address, vault.address],
+                    args: [
+                        clearingHouseConfig.address,
+                        vault.address,
+                        maxCollateralTokensPerAccountArg,
+                        debtNonSettlementTokenValueRatioArg,
+                        liquidationRatioArg,
+                        mmRatioBufferArg,
+                        clInsuranceFundFeeRatioArg,
+                        debtThresholdArg,
+                        collateralValueDustArg,
+                    ],
                 },
             },
         },
