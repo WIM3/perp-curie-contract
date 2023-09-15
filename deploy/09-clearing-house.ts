@@ -9,13 +9,17 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
     const { deployer } = await hre.getNamedAccounts()
     const chainId = network.config.chainId || HARDHAT_CHAINID
     log("#########################")
-    log(`# Deploying Vault Contract to: ${chainId} ...`)
+    log(`# Deploying ClearingHouse Contract to: ${chainId} ...`)
 
-    const insuranceFund = await get("InsuranceFund")
     const clearingHouseConfig = await get("ClearingHouseConfig")
-    const accountBalance = await get("AccountBalance")
+    const vault = await get("Vault")
+    const quoteToken = await get("QuoteToken")
+    const uniV3Factory = await get("UniswapV3Factory")
     const exchange = await get("Exchange")
-    const vaultContract = await deploy("Vault", {
+    const accountBalance = await get("AccountBalance")
+    const insuranceFund = await get("InsuranceFund")
+
+    const collateralManagerContract = await deploy("ClearingHouse", {
         from: deployer,
         args: [],
         log: true,
@@ -26,23 +30,34 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
                 init: {
                     methodName: "initialize",
                     args: [
-                        insuranceFund.address,
                         clearingHouseConfig.address,
-                        accountBalance.address,
+                        vault.address,
+                        quoteToken.address,
+                        uniV3Factory.address,
                         exchange.address,
+                        accountBalance.address,
+                        insuranceFund.address,
                     ],
                 },
             },
         },
     })
-    log("# Vault contract deployed at address:", vaultContract.address)
+    log("# Vault ClearingHouse deployed at address:", collateralManagerContract.address)
     log("#########################")
 
     if (!isDevelopmentChain(chainId)) {
-        verify(vaultContract.address, [])
+        verify(collateralManagerContract.address, [])
     }
 }
 
 export default deploy
-deploy.tags = [Tag.Vault, Tag.All]
-deploy.dependencies = [Tag.InsuranceFund, Tag.ClearingHouseConfig, Tag.AccountBalance, Tag.Exchange]
+deploy.tags = [Tag.ClearingHouse, Tag.All]
+deploy.dependencies = [
+    Tag.ClearingHouseConfig,
+    Tag.Vault,
+    Tag.MarketRegistry,
+    Tag.Exchange,
+    Tag.AccountBalance,
+    Tag.InsuranceFund,
+]
+deploy.runAtTheEnd = true

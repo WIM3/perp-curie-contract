@@ -8,4 +8,5 @@ export const Tag = {
     MarketRegistry: "marketregistry",
     OrderBook: "orderbook",
     CollateralManager: "collateralmanager",
+    ClearingHouse: "clearinghouse",
 } as const
