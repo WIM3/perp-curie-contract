@@ -21,10 +21,10 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
 
     // I'm not sure about quote & base token deployment, so I just use USDC & vETH for now
     // Looks like we need to deploy quote & base token for each market
-    const quoteTokenAddress = await deployQuoteToken(chainId)
+    const quoteTokenAddress = await deployQuoteToken(hre, chainId)
     const baseTokenAddress = await deployBaseToken(chainId)
 
-    const uniV3Factory = await deployUniswapV3Factory()
+    const uniV3Factory = await deployUniswapV3Factory(hre)
     log("# Creating pool...")
     await createPool(uniV3Factory, quoteTokenAddress, baseTokenAddress)
 
@@ -56,13 +56,27 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
 export default deploy
 deploy.tags = [Tag.MarketRegistry, Tag.All]
 
-async function deployQuoteToken(chainId: number) {
+async function deployQuoteToken(hre: HardhatRuntimeEnvironment, chainId: number) {
     if (isDevelopmentChain(chainId)) {
-        console.log("# Deploying QuoteToken...")
-        const quoteTokenFactory = await ethers.getContractFactory("QuoteToken")
-        const quoteToken = await quoteTokenFactory.deploy()
-        await quoteToken.initialize("TestUSDC", "USDC")
-        console.log(`# Deployed QuoteToken at address: ${quoteToken.address}`)
+        const { log, deploy } = hre.deployments
+        const { deployer } = await hre.getNamedAccounts()
+        log("# Deploying QuoteToken...")
+        const quoteToken = await deploy("QuoteToken", {
+            from: deployer,
+            args: [],
+            log: true,
+            proxy: {
+                owner: deployer,
+                proxyContract: "OpenZeppelinTransparentProxy",
+                execute: {
+                    init: {
+                        methodName: "initialize",
+                        args: ["TestUSDC", "USDC"],
+                    },
+                },
+            },
+        })
+        log(`# Deployed QuoteToken at address: ${quoteToken.address}`)
         networkConfigHelper[chainId].usdc = quoteToken.address
     }
 
@@ -119,9 +133,18 @@ async function deployBaseToken(chainId: number) {
     return networkConfigHelper[chainId].veth
 }
 
-async function deployUniswapV3Factory(): Promise<UniswapV3Factory> {
-    const factoryFactory = await ethers.getContractFactory("UniswapV3Factory")
-    return await factoryFactory.deploy()
+async function deployUniswapV3Factory(hre: HardhatRuntimeEnvironment): Promise<UniswapV3Factory> {
+    const { log, deploy } = hre.deployments
+    const { deployer } = await hre.getNamedAccounts()
+    const uniV3Factory = await deploy("UniswapV3Factory", {
+        from: deployer,
+        args: [],
+        log: true,
+    })
+    log(`# Deployed UniswapV3Factory at address: ${uniV3Factory.address}`)
+    const uniV3ContractFactory = await ethers.getContractAt("UniswapV3Factory", uniV3Factory.address)
+    const uniV3Contract = uniV3ContractFactory.attach(uniV3ContractFactory.address)
+    return uniV3Contract as UniswapV3Factory
 }
 
 async function createPool(uniV3Factory: UniswapV3Factory, quoteTokenAddress: string, baseTokenAddress: string) {
