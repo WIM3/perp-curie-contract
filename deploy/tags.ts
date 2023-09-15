@@ -1,10 +1,11 @@
 export const Tag = {
     All: "all",
-    ClearingHouseConfig: "chconfig",
+    ClearingHouseConfig: "clearinghouseconfig",
     InsuranceFund: "insurance",
     AccountBalance: "accountbalance",
     Exchange: "exchange",
     Vault: "vault",
-    MarketRegistry: "marketreg",
+    MarketRegistry: "marketregistry",
     OrderBook: "orderbook",
+    CollateralManager: "collateralmanager",
 } as const
