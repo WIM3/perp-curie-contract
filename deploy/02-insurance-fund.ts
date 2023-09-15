@@ -3,6 +3,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { HARDHAT_CHAINID, isDevelopmentChain, networkConfigHelper } from "../helper.hardhat.config"
 import { verify } from "../scripts/verify"
 import { TestERC20 } from "../typechain"
+import { Tag } from "./tags"
 
 const deploy = async (hre: HardhatRuntimeEnvironment) => {
     const { log, deploy } = hre.deployments
@@ -47,4 +48,4 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
 }
 
 export default deploy
-deploy.tags = ["all"]
+deploy.tags = [Tag.InsuranceFund, Tag.All]

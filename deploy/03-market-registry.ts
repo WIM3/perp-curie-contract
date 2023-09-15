@@ -5,6 +5,7 @@ import { HARDHAT_CHAINID, isDevelopmentChain, networkConfigHelper } from "../hel
 import { verify } from "../scripts/verify"
 import { CHAINLINK_AGGREGATOR_DECIMALS } from "../test/shared/constant"
 import { UniswapV3Factory } from "../typechain"
+import { Tag } from "./tags"
 
 // 2. MarketRegistry -> uniV3Factory.address & quoteToken.address
 //    2.1. For each market, we deploy a pair of two virtual tokens (with no real value) and initiate a new Uniswap V3 pool to provide liquidity to.
@@ -53,7 +54,7 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
 }
 
 export default deploy
-deploy.tags = ["marketreg", "all"]
+deploy.tags = [Tag.MarketRegistry, Tag.All]
 
 async function deployQuoteToken(chainId: number) {
     if (isDevelopmentChain(chainId)) {

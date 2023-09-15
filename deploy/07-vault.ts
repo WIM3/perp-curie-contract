@@ -9,12 +9,13 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
     const { deployer } = await hre.getNamedAccounts()
     const chainId = network.config.chainId || HARDHAT_CHAINID
     log("#########################")
-    log(`# Deploying Exchange Contract to: ${chainId} ...`)
+    log(`# Deploying Vault Contract to: ${chainId} ...`)
 
-    const marketRegistry = await get("MarketRegistry")
-    const orderbook = await get("OrderBook")
     const clearingHouseConfig = await get("ClearingHouseConfig")
-    const exchangeContract = await deploy("Exchange", {
+    const insuranceFund = await get("InsuranceFund")
+    const accountBalance = await get("AccountBalance")
+    const exchange = await get("Exchange")
+    const vaultContract = await deploy("vault", {
         from: deployer,
         args: [],
         log: true,
@@ -24,19 +25,24 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
             execute: {
                 init: {
                     methodName: "initialize",
-                    args: [marketRegistry.address, orderbook.address, clearingHouseConfig.address],
+                    args: [
+                        clearingHouseConfig.address,
+                        insuranceFund.address,
+                        accountBalance.address,
+                        exchange.address,
+                    ],
                 },
             },
         },
     })
-    log("# Exchange contract deployed at address:", exchangeContract.address)
+    log("# Vault contract deployed at address:", vaultContract.address)
     log("#########################")
 
     if (!isDevelopmentChain(chainId)) {
-        verify(exchangeContract.address, [])
+        verify(vaultContract.address, [])
     }
 }
 
 export default deploy
-deploy.tags = [Tag.Exchange, Tag.All]
-deploy.dependencies = [Tag.MarketRegistry, Tag.OrderBook, Tag.ClearingHouseConfig]
+deploy.tags = [Tag.Vault, Tag.All]
+deploy.dependencies = [Tag.ClearingHouseConfig, Tag.InsuranceFund, Tag.AccountBalance, Tag.Exchange]
