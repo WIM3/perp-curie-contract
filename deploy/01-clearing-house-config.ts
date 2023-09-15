@@ -2,6 +2,7 @@ import { network } from "hardhat"
 import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { HARDHAT_CHAINID, isDevelopmentChain } from "../helper.hardhat.config"
 import { verify } from "../scripts/verify"
+import { Tag } from "./tags"
 
 const deploy = async (hre: HardhatRuntimeEnvironment) => {
     const { log, deploy } = hre.deployments
@@ -36,4 +37,4 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
 }
 
 export default deploy
-deploy.tags = ["chconfig", "all"]
+deploy.tags = [Tag.ClearingHouseConfig, Tag.All]

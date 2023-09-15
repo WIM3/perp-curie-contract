@@ -2,6 +2,7 @@ import { network } from "hardhat"
 import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { HARDHAT_CHAINID, isDevelopmentChain } from "../helper.hardhat.config"
 import { verify } from "../scripts/verify"
+import { Tag } from "./tags"
 
 const deploy = async (hre: HardhatRuntimeEnvironment) => {
     const { log, get, deploy } = hre.deployments
@@ -36,5 +37,5 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
 }
 
 export default deploy
-deploy.tags = ["accountbalance", "all"]
-deploy.dependencies = ["orderbook", "chconfig"]
+deploy.tags = [Tag.AccountBalance, Tag.All]
+deploy.dependencies = [Tag.OrderBook, Tag.ClearingHouseConfig]
