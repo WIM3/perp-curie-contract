@@ -11,8 +11,8 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
     log("#########################")
     log(`# Deploying Vault Contract to: ${chainId} ...`)
 
-    const clearingHouseConfig = await get("ClearingHouseConfig")
     const insuranceFund = await get("InsuranceFund")
+    const clearingHouseConfig = await get("ClearingHouseConfig")
     const accountBalance = await get("AccountBalance")
     const exchange = await get("Exchange")
     const vaultContract = await deploy("Vault", {
@@ -26,8 +26,8 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
                 init: {
                     methodName: "initialize",
                     args: [
-                        clearingHouseConfig.address,
                         insuranceFund.address,
+                        clearingHouseConfig.address,
                         accountBalance.address,
                         exchange.address,
                     ],
@@ -45,4 +45,4 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
 
 export default deploy
 deploy.tags = [Tag.Vault, Tag.All]
-deploy.dependencies = [Tag.ClearingHouseConfig, Tag.InsuranceFund, Tag.AccountBalance, Tag.Exchange]
+deploy.dependencies = [Tag.InsuranceFund, Tag.ClearingHouseConfig, Tag.AccountBalance, Tag.Exchange]
