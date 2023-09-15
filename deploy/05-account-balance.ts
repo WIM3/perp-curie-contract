@@ -4,14 +4,15 @@ import { HARDHAT_CHAINID, isDevelopmentChain } from "../helper.hardhat.config"
 import { verify } from "../scripts/verify"
 
 const deploy = async (hre: HardhatRuntimeEnvironment) => {
-    const { log, deploy } = hre.deployments
+    const { log, get, deploy } = hre.deployments
     const { deployer } = await hre.getNamedAccounts()
     const chainId = network.config.chainId || HARDHAT_CHAINID
-
     log("#########################")
-    log(`# Deploying ClearingHouseConfig Contract to: ${chainId} ...`)
+    log(`# Deploying AccountBalance Contract to: ${chainId} ...`)
 
-    const clearingHouseConfigContract = await deploy("ClearingHouseConfig", {
+    const orderbook = await get("OrderBook")
+    const clearingHouseConfig = await get("ClearingHouseConfig")
+    const accountBalanceContract = await deploy("AccountBalance", {
         from: deployer,
         args: [],
         log: true,
@@ -21,19 +22,19 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
             execute: {
                 init: {
                     methodName: "initialize",
-                    args: [],
+                    args: [orderbook.address, clearingHouseConfig.address],
                 },
             },
         },
     })
-
-    log("# ClearingHouseConfig contract deployed at address:", clearingHouseConfigContract.address)
+    log("# AccountBalance contract deployed at address:", accountBalanceContract.address)
     log("#########################")
 
     if (!isDevelopmentChain(chainId)) {
-        verify(clearingHouseConfigContract.address, [])
+        verify(accountBalanceContract.address, [])
     }
 }
 
 export default deploy
-deploy.tags = ["chconfig", "all"]
+deploy.tags = ["accountbalance", "all"]
+deploy.dependencies = ["orderbook", "chconfig"]
