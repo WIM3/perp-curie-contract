@@ -26,10 +26,9 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
 
     const uniV3Factory = await deployUniswapV3Factory(hre)
     log("# Creating pool...")
-    await createPool(uniV3Factory, quoteTokenAddress, baseTokenAddress)
+    await createPool(uniV3Factory, chainId)
 
     log(`# Deploying MarketRegistry Contract to: ${chainId} ...`)
-    // const marketRegistryFactory = await ethers.getContractFactory("MarketRegistry")
     const marketRegistryContract = await deploy("MarketRegistry", {
         from: deployer,
         args: [],
@@ -57,30 +56,28 @@ export default deploy
 deploy.tags = [Tag.MarketRegistry, Tag.All]
 
 async function deployQuoteToken(hre: HardhatRuntimeEnvironment, chainId: number) {
-    if (isDevelopmentChain(chainId)) {
-        const { log, deploy } = hre.deployments
-        const { deployer } = await hre.getNamedAccounts()
-        log("# Deploying QuoteToken...")
-        const quoteToken = await deploy("QuoteToken", {
-            from: deployer,
-            args: [],
-            log: true,
-            proxy: {
-                owner: deployer,
-                proxyContract: "OpenZeppelinTransparentProxy",
-                execute: {
-                    init: {
-                        methodName: "initialize",
-                        args: ["TestUSDC", "USDC"],
-                    },
+    const { log, deploy } = hre.deployments
+    const { deployer } = await hre.getNamedAccounts()
+    log("# Deploying QuoteToken...")
+    const quoteToken = await deploy("QuoteToken", {
+        from: deployer,
+        args: [],
+        log: true,
+        proxy: {
+            owner: deployer,
+            proxyContract: "OpenZeppelinTransparentProxy",
+            execute: {
+                init: {
+                    methodName: "initialize",
+                    args: ["VirtualUSDC", "vUSDC"],
                 },
             },
-        })
-        log(`# Deployed QuoteToken at address: ${quoteToken.address}`)
-        networkConfigHelper[chainId].usdc = quoteToken.address
-    }
+        },
+    })
+    log(`# Deployed QuoteToken at address: ${quoteToken.address}`)
+    networkConfigHelper[chainId].vusdc = quoteToken.address
 
-    return networkConfigHelper[chainId].usdc
+    return networkConfigHelper[chainId].vusdc
 }
 
 async function deployBaseToken(chainId: number) {
@@ -121,14 +118,12 @@ async function deployBaseToken(chainId: number) {
     const priceFeedDispatcher = await priceFeedDispatcherFactory.deploy(priceFeedAddress)
     console.log(`# Deployed priceFeedDispatcher at address: ${priceFeedDispatcher.address}}`)
 
-    if (isDevelopmentChain(chainId)) {
-        console.log("# Deploying BaseToken...")
-        const baseTokenFactory = await ethers.getContractFactory("BaseToken")
-        const baseToken = await baseTokenFactory.deploy()
-        await baseToken.initialize("VirtualETH", "vETH", priceFeedDispatcher.address)
-        console.log(`# Deployed BaseToken at address: ${baseToken.address}}`)
-        networkConfigHelper[chainId].veth = baseToken.address
-    }
+    console.log("# Deploying BaseToken...")
+    const baseTokenFactory = await ethers.getContractFactory("BaseToken")
+    const baseToken = await baseTokenFactory.deploy()
+    await baseToken.initialize("VirtualETH", "vETH", priceFeedDispatcher.address)
+    console.log(`# Deployed BaseToken at address: ${baseToken.address}}`)
+    networkConfigHelper[chainId].veth = baseToken.address
 
     return networkConfigHelper[chainId].veth
 }
@@ -147,9 +142,10 @@ async function deployUniswapV3Factory(hre: HardhatRuntimeEnvironment): Promise<U
     return uniV3Contract as UniswapV3Factory
 }
 
-async function createPool(uniV3Factory: UniswapV3Factory, quoteTokenAddress: string, baseTokenAddress: string) {
+async function createPool(uniV3Factory: UniswapV3Factory, chainId: number) {
     const uniFee = 3000
-    console.log(`# With quote token "${quoteTokenAddress}" and base token "${baseTokenAddress}"}`)
-    await uniV3Factory.createPool(baseTokenAddress, quoteTokenAddress, uniFee)
+    const { veth, vusdc } = networkConfigHelper[chainId]
+    console.log(`# With quote token "${vusdc}" and base token "${veth}"}`)
+    await uniV3Factory.createPool(veth, vusdc, uniFee)
     console.log(`# Pool created`)
 }

@@ -1,7 +1,9 @@
+import "@nomicfoundation/hardhat-verify"
 import "@nomiclabs/hardhat-ethers"
 import "@nomiclabs/hardhat-waffle"
 import "@openzeppelin/hardhat-upgrades"
 import "@typechain/hardhat"
+import dotenv from "dotenv"
 import "hardhat-contract-sizer"
 import "hardhat-dependency-compiler"
 import "hardhat-deploy"
@@ -9,6 +11,11 @@ import "hardhat-gas-reporter"
 import { HardhatUserConfig } from "hardhat/config"
 import "solidity-coverage"
 import "./mocha-test"
+
+dotenv.config()
+const optimismGoerliUrl = process.env.OPTIMISM_GOERLI_URL || "http://localhost:8545"
+const mnemonic = process.env.MNEMONIC || "test"
+const optimisticEtherscanAPIKey = process.env.OPSCAN_API_KEY || "test"
 
 const config: HardhatUserConfig = {
     solidity: {
@@ -27,6 +34,11 @@ const config: HardhatUserConfig = {
     networks: {
         hardhat: {
             allowUnlimitedContractSize: true,
+        },
+        opgoerli: {
+            url: optimismGoerliUrl,
+            accounts: { mnemonic },
+            chainId: 420,
         },
     },
     dependencyCompiler: {
@@ -60,6 +72,9 @@ const config: HardhatUserConfig = {
         deployer: {
             default: 0,
         },
+    },
+    etherscan: {
+        apiKey: optimisticEtherscanAPIKey,
     },
 }
 
