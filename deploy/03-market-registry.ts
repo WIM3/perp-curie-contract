@@ -1,5 +1,6 @@
 import { smockit } from "@eth-optimism/smock"
 import { ethers, network } from "hardhat"
+import * as fs from "fs"
 import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { HARDHAT_CHAINID, isDevelopmentChain, networkConfigHelper } from "../helper.hardhat.config"
 import { verify } from "../scripts/verify"
@@ -50,6 +51,10 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
 
     if (!isDevelopmentChain(chainId)) {
         verify(marketRegistryContract.address, [])
+        log("# verifying implementation...")
+        const jsonString = fs.readFileSync("./deployments/optimismGoerli/MarketRegistry_Implementation.json", "utf-8")
+        const jsonData = JSON.parse(jsonString)
+        verify(jsonData.address, jsonData.args)
     }
 }
 
