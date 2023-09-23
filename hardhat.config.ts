@@ -9,6 +9,10 @@ import "hardhat-gas-reporter"
 import { HardhatUserConfig } from "hardhat/config"
 import "solidity-coverage"
 import "./mocha-test"
+import "@eth-optimism/hardhat-deploy-config"
+import "@nomicfoundation/hardhat-verify"
+
+require("dotenv").config()
 
 const config: HardhatUserConfig = {
     solidity: {
@@ -27,6 +31,18 @@ const config: HardhatUserConfig = {
     networks: {
         hardhat: {
             allowUnlimitedContractSize: true,
+        },
+        optimismGoerli: {
+            url: process.env.URL || "http://localhost:8545",
+            chainId: 420,
+            accounts: {
+                mnemonic: process.env.MNEMONIC,
+            },
+        },
+    },
+    etherscan: {
+        apiKey: {
+            optimisticGoerli: "MNMWVUVFJTRGM2CJMEWSAS68GJDB2S5EHF",
         },
     },
     dependencyCompiler: {
