@@ -13,9 +13,6 @@ import "solidity-coverage"
 import "./mocha-test"
 
 dotenv.config()
-const optimismGoerliUrl = process.env.OPTIMISM_GOERLI_URL || "http://localhost:8545"
-const mnemonic = process.env.MNEMONIC || "test"
-const optimisticEtherscanAPIKey = process.env.OPSCAN_API_KEY || "test"
 
 const config: HardhatUserConfig = {
     solidity: {
@@ -36,8 +33,10 @@ const config: HardhatUserConfig = {
             allowUnlimitedContractSize: true,
         },
         opgoerli: {
-            url: optimismGoerliUrl,
-            accounts: { mnemonic },
+            url: process.env.OPTIMISM_GOERLI_URL,
+            accounts: {
+                mnemonic: process.env.MNEMONIC || `0x${process.env.PRIVATE_KEY}` || "",
+            },
             chainId: 420,
         },
     },
@@ -74,7 +73,7 @@ const config: HardhatUserConfig = {
         },
     },
     etherscan: {
-        apiKey: optimisticEtherscanAPIKey,
+        apiKey: process.env.OPSCAN_API_KEY,
     },
 }
 
