@@ -13,3 +13,4 @@ contracts/hardhat-dependency-compiler/*
 .env*
 forge-cache/
 out/
+deployments

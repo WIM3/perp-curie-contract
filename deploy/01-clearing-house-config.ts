@@ -1,4 +1,3 @@
-import { network } from "hardhat"
 import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { HARDHAT_CHAINID, isDevelopmentChain } from "../helper.hardhat.config"
 import { verify } from "../scripts/verify"
@@ -7,8 +6,7 @@ import { Tag } from "./tags"
 const deploy = async (hre: HardhatRuntimeEnvironment) => {
     const { log, deploy } = hre.deployments
     const { deployer } = await hre.getNamedAccounts()
-    const chainId = network.config.chainId || HARDHAT_CHAINID
-
+    const chainId = hre.network.config.chainId || HARDHAT_CHAINID
     log("#########################")
     log(`# Deploying ClearingHouseConfig Contract to: ${chainId} ...`)
 
