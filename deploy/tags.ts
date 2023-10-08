@@ -1,5 +1,6 @@
 export const Tag = {
     All: "all",
+    DelegateApproval: "delegateapproval",
     ClearingHouseConfig: "clearinghouseconfig",
     InsuranceFund: "insurance",
     AccountBalance: "accountbalance",
