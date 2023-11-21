@@ -23,6 +23,10 @@ contract VirtualToken is IVirtualToken, SafeOwnable, ERC20Upgradeable {
         _mint(recipient, type(uint256).max);
     }
 
+    function mintOneThousand(address recipient) external onlyOwner {
+        _mint(recipient, 1000 ether);
+    }
+
     function addWhitelist(address account) external onlyOwner {
         _whitelistMap[account] = true;
         emit WhitelistAdded(account);

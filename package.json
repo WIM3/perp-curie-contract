@@ -45,7 +45,8 @@
     "flatten": "ts-node --files scripts/flatten.ts",
     "slither": "ts-node --files scripts/slither.ts",
     "deploy:local": "hardhat deploy --network hardhat --tags all",
-    "deploy:goerli:test": "hardhat deploy --network opgoerli --tags all"
+    "deploy:goerli:test": "hardhat deploy --network opgoerli --tags all",
+    "upgrade:local": "hardhat deploy --network opgoerli --tags upgradequotetoken"
   },
   "dependencies": {
     "@chainlink/contracts": "0.1.7",

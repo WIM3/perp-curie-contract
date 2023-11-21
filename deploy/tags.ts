@@ -10,4 +10,5 @@ export const Tag = {
     OrderBook: "orderbook",
     CollateralManager: "collateralmanager",
     ClearingHouse: "clearinghouse",
+    UpgradeQuotetoken: "upgradequotetoken",
 } as const
