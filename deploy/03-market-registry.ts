@@ -6,6 +6,7 @@ import { verify } from "../scripts/verify"
 import { CHAINLINK_AGGREGATOR_DECIMALS } from "../test/shared/constant"
 import { UniswapV3Factory } from "../typechain"
 import { Tag } from "./tags"
+import * as fs from "fs"
 
 // 2. MarketRegistry -> uniV3Factory.address & quoteToken.address
 //    2.1. For each market, we deploy a pair of two virtual tokens (with no real value) and initiate a new Uniswap V3 pool to provide liquidity to.
@@ -31,24 +32,19 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
     log(`# Deploying MarketRegistry Contract to: ${chainId} ...`)
     const marketRegistryContract = await deploy("MarketRegistry", {
         from: deployer,
-        args: [],
+        args: [uniV3Factory.address, quoteTokenAddress],
         log: true,
-        proxy: {
-            owner: deployer,
-            proxyContract: "OpenZeppelinTransparentProxy",
-            execute: {
-                init: {
-                    methodName: "initialize",
-                    args: [uniV3Factory.address, quoteTokenAddress],
-                },
-            },
-        },
     })
     log("# MarketRegistry contract deployed at address:", marketRegistryContract.address)
     log("#########################")
+    const marketRegistryCon = await ethers.getContractAt("MarketRegistry", marketRegistryContract.address)
+    const marketRegistry = marketRegistryCon.attach(marketRegistryCon.address)
+    await marketRegistry.addPool(baseTokenAddress, "3000")
 
     if (!isDevelopmentChain(chainId)) {
-        verify(marketRegistryContract.address, [])
+        const jsonString = fs.readFileSync("./deployments/opgoerli/MarketRegistry.json", "utf-8")
+        const jsonData = JSON.parse(jsonString)
+        await verify(jsonData.address, jsonData.args)
     }
 }
 
@@ -84,30 +80,26 @@ async function deployBaseToken(chainId: number) {
     let priceFeedAddress
     let aggregatorAddress
 
+    const optGoerliPyth = "0xDd24F84d36BF92C65F92307595335bdFab5Bbd21"
+    const pythEthUsdPriceId = "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace"
+
     if (isDevelopmentChain(chainId)) {
-        console.log("# Deploying TestAggregatorV3...")
-        const aggregatorFactory = await ethers.getContractFactory("TestAggregatorV3")
-        const aggregator = await aggregatorFactory.deploy()
-        const mockedAggregator = await smockit(aggregator)
-        mockedAggregator.smocked.decimals.will.return.with(async () => {
-            return CHAINLINK_AGGREGATOR_DECIMALS
-        })
-        aggregatorAddress = mockedAggregator.address
-        console.log(`# Deployed TestAggregatorV3 at address: ${aggregatorAddress}}`)
+        console.log("# Deploying PythAggregatorV3...")
+        const aggregatorFactory = await ethers.getContractFactory("PythAggregatorV3")
+        const aggregator = await aggregatorFactory.deploy(optGoerliPyth, pythEthUsdPriceId)
+
+        aggregatorAddress = aggregator.address
+        console.log(`# Deployed PythAggregatorV3 at address: ${aggregatorAddress}}`)
     }
 
     if (isDevelopmentChain(chainId)) {
         const fortyMinutes = 60 * 40
         const fifteenMinutes = 60 * 15
-        console.log("# Deploying ChainlinkPriceFeedV3...")
-        const chainlinkPriceFeedV3Factory = await ethers.getContractFactory("ChainlinkPriceFeedV3")
-        const chainlinkPriceFeedV3 = await chainlinkPriceFeedV3Factory.deploy(
-            aggregatorAddress,
-            fortyMinutes,
-            fifteenMinutes,
-        )
-        priceFeedAddress = chainlinkPriceFeedV3.address
-        console.log(`# Deployed ChainlinkPriceFeedV3 at address: ${chainlinkPriceFeedV3.address}}`)
+        console.log("# Deploying PythPriceFeedV3...")
+        const pythPriceFeedV3Factory = await ethers.getContractFactory("PythPriceFeedV3")
+        const pythPriceFeedV3 = await pythPriceFeedV3Factory.deploy(aggregatorAddress, fortyMinutes, fifteenMinutes)
+        priceFeedAddress = pythPriceFeedV3.address
+        console.log(`# Deployed PythPriceFeedV3 at address: ${pythPriceFeedV3.address}}`)
     } else {
         priceFeedAddress = networkConfigHelper[chainId].ethusdPriceFeed
     }
@@ -121,7 +113,7 @@ async function deployBaseToken(chainId: number) {
     console.log("# Deploying BaseToken...")
     const baseTokenFactory = await ethers.getContractFactory("BaseToken")
     const baseToken = await baseTokenFactory.deploy()
-    await baseToken.initialize("VirtualETH", "vETH", priceFeedDispatcher.address)
+    await baseToken.initialize("ETH", "vETH", priceFeedDispatcher.address)
     console.log(`# Deployed BaseToken at address: ${baseToken.address}}`)
     networkConfigHelper[chainId].veth = baseToken.address
 
