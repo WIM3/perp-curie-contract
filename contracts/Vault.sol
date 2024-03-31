@@ -1,16 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.7.6;
+pragma solidity ^0.8.0;
 pragma abicoder v2;
 
 import { AddressUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
-import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
-import { SignedSafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SignedSafeMathUpgradeable.sol";
-import { MathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/MathUpgradeable.sol";
+import {
+    ReentrancyGuardUpgradeable
+} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import {
+    SignedSafeMathUpgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/math/SignedSafeMathUpgradeable.sol";
+import { MathUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import {
     SafeERC20Upgradeable,
     IERC20Upgradeable
-} from "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
+} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { FullMath } from "@uniswap/v3-core/contracts/libraries/FullMath.sol";
 import { TransferHelper } from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import { PerpSafeCast } from "./lib/PerpSafeCast.sol";
@@ -1018,12 +1022,12 @@ contract Vault is IVault, ReentrancyGuardUpgradeable, OwnerPausable, BaseRelayRe
     }
 
     /// @inheritdoc BaseRelayRecipient
-    function _msgSender() internal view override(BaseRelayRecipient, OwnerPausable) returns (address payable) {
+    function _msgSender() internal view override(BaseRelayRecipient, OwnerPausable) returns (address) {
         return super._msgSender();
     }
 
     /// @inheritdoc BaseRelayRecipient
-    function _msgData() internal view override(BaseRelayRecipient, OwnerPausable) returns (bytes memory) {
+    function _msgData() internal view override(BaseRelayRecipient, OwnerPausable) returns (bytes calldata) {
         return super._msgData();
     }
 }

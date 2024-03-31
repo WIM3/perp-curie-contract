@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity 0.7.6;
+pragma solidity ^0.8.0;
 pragma abicoder v2;
 
 import { OwnerPausable } from "./base/OwnerPausable.sol";
 import { CollateralManagerStorageV2 } from "./storage/CollateralManagerStorage.sol";
 import { AddressUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
-import { IPriceFeed } from "@perp/perp-oracle-contract/contracts/interface/IPriceFeed.sol";
+import { IPriceFeed } from "@wim3/perp-oracle-contract/contracts/interface/IPriceFeed.sol";
 import { Collateral } from "./lib/Collateral.sol";
 import { ICollateralManager } from "./interface/ICollateralManager.sol";
 import { IClearingHouseConfig } from "./interface/IClearingHouseConfig.sol";
 import { IVault } from "./interface/IVault.sol";
-import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
+import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 
 contract CollateralManager is ICollateralManager, OwnerPausable, CollateralManagerStorageV2 {
     using AddressUpgradeable for address;

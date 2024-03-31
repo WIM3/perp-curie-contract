@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.7.6;
+pragma solidity ^0.8.0;
 
-import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import { SafeOwnable } from "./SafeOwnable.sol";
 
 abstract contract OwnerPausable is SafeOwnable, PausableUpgradeable {
@@ -22,11 +22,11 @@ abstract contract OwnerPausable is SafeOwnable, PausableUpgradeable {
         _unpause();
     }
 
-    function _msgSender() internal view virtual override returns (address payable) {
+    function _msgSender() internal view virtual override returns (address) {
         return super._msgSender();
     }
 
-    function _msgData() internal view virtual override returns (bytes memory) {
+    function _msgData() internal view virtual override returns (bytes calldata) {
         return super._msgData();
     }
 }

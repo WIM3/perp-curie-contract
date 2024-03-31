@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.7.6;
+pragma solidity ^0.8.0;
 
 /// @notice For future upgrades, do not change ClearingHouseConfigStorageV1. Create a new
 /// contract which implements ClearingHouseConfigStorageV1 and following the naming convention

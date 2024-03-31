@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.7.6;
+pragma solidity ^0.8.0;
 pragma abicoder v2;
 
 import { FixedPoint96 } from "@uniswap/v3-core/contracts/libraries/FixedPoint96.sol";
 import { FullMath } from "@uniswap/v3-core/contracts/libraries/FullMath.sol";
 import { PerpSafeCast } from "./PerpSafeCast.sol";
-import { MathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/MathUpgradeable.sol";
-import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
-import { SignedSafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SignedSafeMathUpgradeable.sol";
+import { MathUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
+import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import {
+    SignedSafeMathUpgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/math/SignedSafeMathUpgradeable.sol";
 
 library PerpMath {
     using PerpSafeCast for int256;
@@ -53,7 +55,7 @@ library PerpMath {
     }
 
     function neg128(uint128 a) internal pure returns (int128) {
-        return -PerpSafeCast.toInt128(a);
+        return -int128(a);
     }
 
     function divBy10_18(int256 value) internal pure returns (int256) {
@@ -76,7 +78,7 @@ library PerpMath {
     }
 
     function mulRatio(int256 value, uint24 ratio) internal pure returns (int256) {
-        return mulDiv(value, int256(ratio), 1e6);
+        return mulDiv(value, int256(uint256(ratio)), 1e6);
     }
 
     function divRatio(uint256 value, uint24 ratio) internal pure returns (uint256) {
