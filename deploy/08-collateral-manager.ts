@@ -1,3 +1,4 @@
+import * as fs from "fs"
 import { ethers, network } from "hardhat"
 import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { HARDHAT_CHAINID, isDevelopmentChain } from "../helper.hardhat.config"
@@ -46,11 +47,17 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
             },
         },
     })
-    log("# Vault contract deployed at address:", collateralManagerContract.address)
+
+    log("# CollateralManager contract deployed at address:", collateralManagerContract.address)
     log("#########################")
 
     if (!isDevelopmentChain(chainId)) {
-        verify(collateralManagerContract.address, [])
+        const proxyString = fs.readFileSync("./deployments/opsepolia/CollateralManager.json", "utf-8")
+        const proxyData = JSON.parse(proxyString)
+        const implString = fs.readFileSync("./deployments/opsepolia/CollateralManager_Implementation.json", "utf-8")
+        const implData = JSON.parse(implString)
+
+        await verify(proxyData.address, proxyData.args, implData.address)
     }
 }
 

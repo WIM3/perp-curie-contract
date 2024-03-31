@@ -1,3 +1,4 @@
+import * as fs from "fs"
 import { network } from "hardhat"
 import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { HARDHAT_CHAINID, isDevelopmentChain } from "../helper.hardhat.config"
@@ -23,7 +24,7 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
             execute: {
                 init: {
                     methodName: "initialize",
-                    args: [orderbook.address, clearingHouseConfig.address],
+                    args: [clearingHouseConfig.address, orderbook.address],
                 },
             },
         },
@@ -32,7 +33,12 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
     log("#########################")
 
     if (!isDevelopmentChain(chainId)) {
-        verify(accountBalanceContract.address, [])
+        const proxyString = fs.readFileSync("./deployments/opsepolia/AccountBalance.json", "utf-8")
+        const proxyData = JSON.parse(proxyString)
+        const implString = fs.readFileSync("./deployments/opsepolia/AccountBalance_Implementation.json", "utf-8")
+        const implData = JSON.parse(implString)
+
+        await verify(proxyData.address, proxyData.args, implData.address)
     }
 }
 
