@@ -1,3 +1,4 @@
+import * as fs from "fs"
 import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { HARDHAT_CHAINID, isDevelopmentChain } from "../helper.hardhat.config"
 import { verify } from "../scripts/verify"
@@ -30,7 +31,11 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
     log("#########################")
 
     if (!isDevelopmentChain(chainId)) {
-        verify(clearingHouseConfigContract.address, [])
+        const proxyString = fs.readFileSync("./deployments/opsepolia/ClearingHouseConfig.json", "utf-8")
+        const proxyData = JSON.parse(proxyString)
+        const implString = fs.readFileSync("./deployments/opsepolia/ClearingHouseConfig_Implementation.json", "utf-8")
+        const implData = JSON.parse(implString)
+        await verify(proxyData.address, proxyData.args, implData.address)
     }
 }
 

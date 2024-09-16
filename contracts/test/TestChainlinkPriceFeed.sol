@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.7.6;
+pragma solidity ^0.8.0;
 pragma abicoder v2;
 
-import { IPriceFeed } from "@perp/perp-oracle-contract/contracts/interface/IPriceFeed.sol";
+import { IPriceFeed } from "@wim3/perp-oracle-contract/contracts/interface/IPriceFeed.sol";
 
 contract TestChainlinkPriceFeed is IPriceFeed {
     uint256 private _price;

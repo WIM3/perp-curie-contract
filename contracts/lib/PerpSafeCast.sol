@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.7.6;
+pragma solidity ^0.8.0;
 
 /**
  * @dev copy from "@openzeppelin/contracts-upgradeable/utils/SafeCastUpgradeable.sol"
@@ -211,7 +211,7 @@ library PerpSafeCast {
      */
     function toUint24(int256 value) internal pure returns (uint24 returnValue) {
         require(
-            ((returnValue = uint24(value)) == value),
+            ((returnValue = uint24(int24(value))) == uint24(int24(value))),
             "SafeCast: value must be positive or value doesn't fit in an 24 bits"
         );
     }

@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.7.6;
+pragma solidity ^0.8.0;
 pragma abicoder v2;
 
 import { AddressUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
-import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
-import { SignedSafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SignedSafeMathUpgradeable.sol";
+import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import {
+    SignedSafeMathUpgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/math/SignedSafeMathUpgradeable.sol";
 import { FullMath } from "@uniswap/v3-core/contracts/libraries/FullMath.sol";
 import { TickMath } from "@uniswap/v3-core/contracts/libraries/TickMath.sol";
 import { IUniswapV3SwapCallback } from "@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3SwapCallback.sol";
@@ -27,6 +29,7 @@ import { IBaseToken } from "./interface/IBaseToken.sol";
 import { ExchangeStorageV2 } from "./storage/ExchangeStorage.sol";
 import { IExchange } from "./interface/IExchange.sol";
 import { OpenOrder } from "./lib/OpenOrder.sol";
+import { UD60x18, ud } from "@prb/math/src/UD60x18.sol";
 
 // never inherit any new stateful contract. never change the orders of parent stateful contracts
 contract Exchange is
@@ -71,14 +74,10 @@ contract Exchange is
         int256 quote;
     }
 
-    //
-    // CONSTANT
-    //
-
-    uint256 internal constant _FULLY_CLOSED_RATIO = 1e18;
-    uint24 internal constant _MAX_TICK_CROSSED_WITHIN_BLOCK_CAP = 1000; // 10%
-    uint24 internal constant _MAX_PRICE_SPREAD_RATIO = 0.1e6; // 10% in decimal 6
-    uint256 internal constant _PRICE_LIMIT_INTERVAL = 15; // 15 sec
+    uint256 internal _FULLY_CLOSED_RATIO;
+    uint24 internal _MAX_TICK_CROSSED_WITHIN_BLOCK_CAP;
+    uint24 internal _MAX_PRICE_SPREAD_RATIO;
+    uint256 internal _PRICE_LIMIT_INTERVAL;
 
     //
     // EXTERNAL NON-VIEW
@@ -100,6 +99,11 @@ contract Exchange is
         // update states
         _orderBook = orderBookArg;
         _clearingHouseConfig = clearingHouseConfigArg;
+
+        _FULLY_CLOSED_RATIO = 1e18;
+        _MAX_TICK_CROSSED_WITHIN_BLOCK_CAP = 1000; // 10%
+        _MAX_PRICE_SPREAD_RATIO = 0.1e6; // 10% in decimal 6
+        _PRICE_LIMIT_INTERVAL = 15; // 15 sec
     }
 
     /// @param accountBalanceArg: AccountBalance contract address
@@ -138,6 +142,42 @@ contract Exchange is
         bytes calldata data
     ) external override checkCallback {
         IUniswapV3SwapCallback(_clearingHouse).uniswapV3SwapCallback(amount0Delta, amount1Delta, data);
+    }
+
+    function setFullyClosedRatio(uint256 _value) external {
+        _requireOnlyClearingHouse();
+        _FULLY_CLOSED_RATIO = _value;
+    }
+
+    function setMaxTickCrossedWithinBlockCap(uint24 _value) external {
+        _requireOnlyClearingHouse();
+        _MAX_TICK_CROSSED_WITHIN_BLOCK_CAP = _value;
+    }
+
+    function setMaxPriceSpreadRatio(uint24 _value) external {
+        _requireOnlyClearingHouse();
+        _MAX_PRICE_SPREAD_RATIO = _value;
+    }
+
+    function setPriceLimitInterval(uint256 _value) external {
+        _requireOnlyClearingHouse();
+        _PRICE_LIMIT_INTERVAL = _value;
+    }
+
+    function getFullyClosedRatio() external view returns (uint256) {
+        return _FULLY_CLOSED_RATIO;
+    }
+
+    function getMaxTickCrossedWithinBlockCap() external view returns (uint24) {
+        return _MAX_TICK_CROSSED_WITHIN_BLOCK_CAP;
+    }
+
+    function getMaxPriceSpreadRatio() external view returns (uint24) {
+        return _MAX_PRICE_SPREAD_RATIO;
+    }
+
+    function getPriceLimitInterval() external view returns (uint256) {
+        return _PRICE_LIMIT_INTERVAL;
     }
 
     /// @param params The parameters of the swap
@@ -314,7 +354,7 @@ contract Exchange is
                         quote: params.quote
                     })
                 )
-                : 0;
+                : int256(0);
     }
 
     /// @inheritdoc IExchange
@@ -331,7 +371,7 @@ contract Exchange is
     /// @inheritdoc IExchange
     function isOverPriceSpread(address baseToken) external view override returns (bool) {
         return
-            _getPriceSpreadRatio(baseToken, IClearingHouseConfig(_clearingHouseConfig).getTwapInterval()).abs() >
+            getPriceSpreadRatio(baseToken, IClearingHouseConfig(_clearingHouseConfig).getTwapInterval()).abs() >
             _MAX_PRICE_SPREAD_RATIO;
     }
 
@@ -366,9 +406,41 @@ contract Exchange is
             );
     }
 
+    /// @dev ratio will return in int256
+    function getPriceSpreadRatio(address baseToken, uint32 twapInterval) public view returns (int256) {
+        uint256 marketPrice =
+            _getLog(
+                _formatFromDecimalsToX10_18(
+                    _getSqrtMarketTwapX96(baseToken, 0).formatSqrtPriceX96ToPriceX96().formatX96ToX10_18(),
+                    6
+                )
+            );
+        uint256 indexPrice = IIndexPrice(baseToken).getIndexPrice(twapInterval);
+        int256 spread =
+            marketPrice > indexPrice ? marketPrice.sub(indexPrice).toInt256() : indexPrice.sub(marketPrice).neg256();
+        return spread.mulDiv(1e6, indexPrice);
+    }
+
     //
     // INTERNAL NON-VIEW
     //
+
+    function _getLog(uint256 value) internal pure returns (uint256) {
+        return ud(value).log2().intoUint256();
+    }
+
+    function _formatFromDecimalsToX10_18(uint256 value, uint8 fromDecimals) internal pure returns (uint256) {
+        uint8 toDecimals = 18;
+
+        if (fromDecimals == toDecimals) {
+            return value;
+        }
+
+        return
+            fromDecimals > toDecimals
+                ? value / (10**(fromDecimals - toDecimals))
+                : value * (10**(toDecimals - fromDecimals));
+    }
 
     /// @dev customized fee: https://www.notion.so/perp/Customise-fee-tier-on-B2QFee-1b7244e1db63416c8651e8fa04128cdb
     function _swap(SwapParams memory params) internal returns (InternalSwapResponse memory) {
@@ -402,7 +474,7 @@ contract Exchange is
                 })
             );
 
-        int256 priceSpreadRatioBeforeSwap = _getPriceSpreadRatio(params.baseToken, 0);
+        int256 priceSpreadRatioBeforeSwap = getPriceSpreadRatio(params.baseToken, 0);
 
         UniswapV3Broker.SwapResponse memory response =
             UniswapV3Broker.swap(
@@ -429,7 +501,7 @@ contract Exchange is
         // avoid stack too deep
         {
             // check price band after swap
-            int256 priceSpreadRatioAfterSwap = _getPriceSpreadRatio(params.baseToken, 0);
+            int256 priceSpreadRatioAfterSwap = getPriceSpreadRatio(params.baseToken, 0);
             int256 maxPriceSpreadRatio = marketInfo.maxPriceSpreadRatio.toInt256();
             require(
                 PerpMath.min(priceSpreadRatioBeforeSwap, maxPriceSpreadRatio.neg256()) <= priceSpreadRatioAfterSwap &&
@@ -445,7 +517,7 @@ contract Exchange is
         if (params.isBaseToQuote) {
             // short: exchangedPositionSize <= 0 && exchangedPositionNotional >= 0
             exchangedPositionSize = SwapMath
-                .calcAmountScaledByFeeRatio(response.base, marketInfo.uniswapFeeRatio, false)
+                .calcAmountScaledByFeeRatio(response.base, marketInfo.uniswapFeeRatio, true)
                 .neg256();
             // due to base to quote fee, exchangedPositionNotional contains the fee
             // s.t. we can take the fee away from exchangedPositionNotional
@@ -470,7 +542,7 @@ contract Exchange is
                 exchangedPositionNotional = params.amount.sub(replayResponse.fee).toInt256().neg256();
             } else {
                 exchangedPositionNotional = SwapMath
-                    .calcAmountScaledByFeeRatio(response.quote, marketInfo.uniswapFeeRatio, false)
+                    .calcAmountScaledByFeeRatio(response.quote, marketInfo.uniswapFeeRatio, true)
                     .neg256();
             }
         }
@@ -530,8 +602,8 @@ contract Exchange is
         uint24 maxDeltaTick = _maxTickCrossedWithinBlockMap[baseToken];
         int24 lastUpdatedTick = _lastUpdatedTickMap[baseToken];
         // no overflow/underflow issue because there are range limits for tick and maxDeltaTick
-        int24 upperTickBound = lastUpdatedTick.add(maxDeltaTick).toInt24();
-        int24 lowerTickBound = lastUpdatedTick.sub(maxDeltaTick).toInt24();
+        int24 upperTickBound = lastUpdatedTick + int24(maxDeltaTick);
+        int24 lowerTickBound = lastUpdatedTick - int24(maxDeltaTick);
         return (tick < lowerTickBound || tick > upperTickBound);
     }
 
@@ -654,16 +726,7 @@ contract Exchange is
         }
     }
 
-    /// @dev ratio will return in int256
-    function _getPriceSpreadRatio(address baseToken, uint32 twapInterval) internal view returns (int256) {
-        uint256 marketPrice = _getSqrtMarketTwapX96(baseToken, 0).formatSqrtPriceX96ToPriceX96().formatX96ToX10_18();
-        uint256 indexPrice = IIndexPrice(baseToken).getIndexPrice(twapInterval);
-        int256 spread =
-            marketPrice > indexPrice ? marketPrice.sub(indexPrice).toInt256() : indexPrice.sub(marketPrice).neg256();
-        return spread.mulDiv(1e6, indexPrice);
-    }
-
-    function _getPnlToBeRealized(InternalRealizePnlParams memory params) internal pure returns (int256) {
+    function _getPnlToBeRealized(InternalRealizePnlParams memory params) internal view returns (int256) {
         // closedRatio is based on the position size
         uint256 closedRatio = FullMath.mulDiv(params.base.abs(), _FULLY_CLOSED_RATIO, params.takerPositionSize.abs());
 
@@ -716,7 +779,7 @@ contract Exchange is
     }
 
     // @dev use virtual for testing
-    function _getMaxTickCrossedWithinBlockCap() internal pure virtual returns (uint24) {
+    function _getMaxTickCrossedWithinBlockCap() internal view virtual returns (uint24) {
         return _MAX_TICK_CROSSED_WITHIN_BLOCK_CAP;
     }
 }

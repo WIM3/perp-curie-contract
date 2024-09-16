@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.7.6;
+pragma solidity ^0.8.0;
 pragma abicoder v2;
 
 import { AddressUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
-import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
-import { SignedSafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SignedSafeMathUpgradeable.sol";
+import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import {
+    SignedSafeMathUpgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/math/SignedSafeMathUpgradeable.sol";
 import { FullMath } from "@uniswap/v3-core/contracts/libraries/FullMath.sol";
 import { BlockContext } from "./base/BlockContext.sol";
 import { ClearingHouseCallee } from "./base/ClearingHouseCallee.sol";
@@ -241,7 +243,7 @@ contract AccountBalance is IAccountBalance, BlockContext, ClearingHouseCallee, A
             // we can't calculate totalQuoteDebtValue until we have totalQuoteBalance
             totalQuoteBalance = totalQuoteBalance.add(getQuote(trader, baseToken));
         }
-        int256 totalQuoteDebtValue = totalQuoteBalance >= 0 ? 0 : totalQuoteBalance;
+        int256 totalQuoteDebtValue = totalQuoteBalance >= int256(0) ? int256(0) : totalQuoteBalance;
 
         // both values are negative due to the above condition checks
         return totalQuoteDebtValue.add(totalBaseDebtValue).abs();
@@ -358,7 +360,7 @@ contract AccountBalance is IAccountBalance, BlockContext, ClearingHouseCallee, A
     /// @inheritdoc IAccountBalance
     function getTakerPositionSize(address trader, address baseToken) public view override returns (int256) {
         int256 positionSize = _accountMarketMap[trader][baseToken].takerPositionSize;
-        return positionSize.abs() < _DUST ? 0 : positionSize;
+        return positionSize.abs() < _DUST ? int256(0) : positionSize;
     }
 
     /// @inheritdoc IAccountBalance
@@ -375,7 +377,7 @@ contract AccountBalance is IAccountBalance, BlockContext, ClearingHouseCallee, A
 
         int256 takerPositionSize = _accountMarketMap[trader][baseToken].takerPositionSize;
         int256 totalPositionSize = makerBaseBalance.add(takerPositionSize);
-        return totalPositionSize.abs() < _DUST ? 0 : totalPositionSize;
+        return totalPositionSize.abs() < _DUST ? int256(0) : totalPositionSize;
     }
 
     /// @inheritdoc IAccountBalance

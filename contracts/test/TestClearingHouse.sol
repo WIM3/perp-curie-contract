@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.7.6;
+pragma solidity ^0.8.0;
 pragma abicoder v2;
 
 import { PerpSafeCast } from "../lib/PerpSafeCast.sol";
-import { SignedSafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SignedSafeMathUpgradeable.sol";
+import {
+    SignedSafeMathUpgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/math/SignedSafeMathUpgradeable.sol";
 import "../ClearingHouse.sol";
 import "./TestAccountBalance.sol";
 import "./TestExchange.sol";
@@ -66,7 +68,7 @@ contract TestClearingHouse is ClearingHouse {
         uint160 sqrtPriceLimitX96; // price slippage protection
     }
 
-    function swap(SwapParams memory params) external nonReentrant() returns (IExchange.SwapResponse memory) {
+    function swap(SwapParams memory params) external nonReentrant returns (IExchange.SwapResponse memory) {
         IAccountBalance(_accountBalance).registerBaseToken(_msgSender(), params.baseToken);
 
         IExchange.SwapResponse memory response =

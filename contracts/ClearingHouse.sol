@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.7.6;
+pragma solidity ^0.8.0;
 pragma abicoder v2;
 
 import { AddressUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
-import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
-import { SignedSafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SignedSafeMathUpgradeable.sol";
-import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import {
+    SignedSafeMathUpgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/math/SignedSafeMathUpgradeable.sol";
+import {
+    ReentrancyGuardUpgradeable
+} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { IUniswapV3Pool } from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import { IUniswapV3MintCallback } from "@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3MintCallback.sol";
 import { IUniswapV3SwapCallback } from "@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3SwapCallback.sol";
@@ -154,6 +158,22 @@ contract ClearingHouse is
         emit DelegateApprovalChanged(delegateApprovalArg);
     }
 
+    function setFullyClosedRatio(uint256 _value) external onlyOwner {
+        IExchange(_exchange).setFullyClosedRatio(_value);
+    }
+
+    function setMaxTickCrossedWithinBlockCap(uint24 _value) external onlyOwner {
+        IExchange(_exchange).setMaxTickCrossedWithinBlockCap(_value);
+    }
+
+    function setMaxPriceSpreadRatio(uint24 _value) external onlyOwner {
+        IExchange(_exchange).setMaxPriceSpreadRatio(_value);
+    }
+
+    function setPriceLimitInterval(uint256 _value) external onlyOwner {
+        IExchange(_exchange).setPriceLimitInterval(_value);
+    }
+
     /// @inheritdoc IClearingHouse
     function addLiquidity(AddLiquidityParams calldata params)
         external
@@ -215,7 +235,7 @@ contract ClearingHouse is
             params.upperTick,
             response.base.toInt256(),
             response.quote.toInt256(),
-            response.liquidity.toInt128(),
+            int128(response.liquidity),
             response.fee
         );
 
@@ -515,7 +535,7 @@ contract ClearingHouse is
 
         // swaps entirely within 0-liquidity regions are not supported -> 0 swap is forbidden
         // CH_F0S: forbidden 0 swap
-        require((amount0Delta > 0 && amount1Delta < 0) || (amount0Delta < 0 && amount1Delta > 0), "CH_F0S");
+        // require((amount0Delta > 0 && amount1Delta < 0) || (amount0Delta < 0 && amount1Delta > 0), "CH_F0S");
 
         IExchange.SwapCallbackData memory callbackData = abi.decode(data, (IExchange.SwapCallbackData));
         IUniswapV3Pool uniswapV3Pool = IUniswapV3Pool(callbackData.pool);
@@ -1059,12 +1079,12 @@ contract ClearingHouse is
     //
 
     /// @inheritdoc BaseRelayRecipient
-    function _msgSender() internal view override(BaseRelayRecipient, OwnerPausable) returns (address payable) {
+    function _msgSender() internal view override(BaseRelayRecipient, OwnerPausable) returns (address) {
         return super._msgSender();
     }
 
     /// @inheritdoc BaseRelayRecipient
-    function _msgData() internal view override(BaseRelayRecipient, OwnerPausable) returns (bytes memory) {
+    function _msgData() internal view override(BaseRelayRecipient, OwnerPausable) returns (bytes calldata) {
         return super._msgData();
     }
 

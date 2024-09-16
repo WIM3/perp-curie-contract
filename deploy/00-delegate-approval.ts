@@ -1,3 +1,4 @@
+import * as fs from "fs"
 import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { HARDHAT_CHAINID, isDevelopmentChain } from "../helper.hardhat.config"
 import { verify } from "../scripts/verify"
@@ -30,7 +31,13 @@ const deploy = async (hre: HardhatRuntimeEnvironment) => {
     log("#########################")
 
     if (!isDevelopmentChain(chainId)) {
-        verify(delegateApprovalContract.address, [])
+        const proxyString = fs.readFileSync("./deployments/opsepolia/DelegateApproval.json", "utf-8")
+        const proxyData = JSON.parse(proxyString)
+        const implString = fs.readFileSync("./deployments/opsepolia/DelegateApproval_Implementation.json", "utf-8")
+        const implData = JSON.parse(implString)
+        console.log("DELEGATE APPROVAL ADDREESS IMPL: ", implData.address)
+
+        await verify(proxyData.address, proxyData.args, implData.address)
     }
 }
 

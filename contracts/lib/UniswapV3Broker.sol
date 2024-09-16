@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.7.6;
+pragma solidity ^0.8.0;
 pragma abicoder v2;
 
 import { IUniswapV3Pool } from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
+import "@uniswap/v3-core/contracts/libraries/FullMath.sol";
 import { IUniswapV3Factory } from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 import { TickMath } from "@uniswap/v3-core/contracts/libraries/TickMath.sol";
+import { TickBitmap } from "@uniswap/v3-core/contracts/libraries/TickBitmap.sol";
 import { LiquidityAmounts } from "@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol";
 import { PoolAddress } from "@uniswap/v3-periphery/contracts/libraries/PoolAddress.sol";
 import { BitMath } from "@uniswap/v3-core/contracts/libraries/BitMath.sol";
 import { PerpSafeCast } from "./PerpSafeCast.sol";
-import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
+import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import { PerpMath } from "../lib/PerpMath.sol";
 
 /**
@@ -25,6 +27,7 @@ library UniswapV3Broker {
     using PerpMath for uint256;
     using PerpSafeCast for uint256;
     using PerpSafeCast for int256;
+    using TickBitmap for mapping(int16 => uint256);
 
     //
     // STRUCT
@@ -168,7 +171,27 @@ library UniswapV3Broker {
             return params.isBaseToQuote ? SwapResponse(amount0, params.amount) : SwapResponse(params.amount, amount1);
         }
 
-        return SwapResponse(amount0, amount1);
+        (uint160 sqrtPriceX96, , , , , , ) = IUniswapV3Pool(params.pool).slot0();
+
+        uint256 baseAmount = getBaseAmount(sqrtPriceX96, 18, specifiedAmount.abs());
+
+        return SwapResponse(specifiedAmount.abs(), baseAmount);
+    }
+
+    //
+    // INTERNAL PURE
+    //
+
+    function getBaseAmount(
+        uint160 sqrtPriceX96,
+        uint8 decimalsToken0,
+        uint256 quoteAmount
+    ) internal pure returns (uint256) {
+        uint256 numerator1 = uint256(sqrtPriceX96) * uint256(sqrtPriceX96);
+        uint256 numerator2 = 10**decimalsToken0;
+        uint256 price = FullMath.mulDiv(numerator1, numerator2, 1 << 192);
+        uint256 baseAmount = (quoteAmount * 1000000000000000000) / price;
+        return baseAmount;
     }
 
     //
@@ -249,7 +272,8 @@ library UniswapV3Broker {
         (int56[] memory tickCumulatives, ) = IUniswapV3Pool(pool).observe(secondsAgos);
 
         // tick(imprecise as it's an integer) to price
-        return TickMath.getSqrtRatioAtTick(int24((tickCumulatives[1] - tickCumulatives[0]) / twapInterval));
+        return
+            TickMath.getSqrtRatioAtTick(int24((tickCumulatives[1] - tickCumulatives[0]) / int24(uint24(twapInterval))));
     }
 
     // copied from UniswapV3-core
@@ -273,8 +297,9 @@ library UniswapV3Broker {
             initialized = masked != 0;
             // overflow/underflow is possible, but prevented externally by limiting both tickSpacing and tick
             next = initialized
-                ? (compressed - int24(bitPos - BitMath.mostSignificantBit(masked))) * tickSpacing
-                : (compressed - int24(bitPos)) * tickSpacing;
+                ? (compressed - int24(int24(uint24(bitPos)) - int24(uint24(BitMath.mostSignificantBit(masked))))) *
+                    tickSpacing
+                : (compressed - int24(uint24(bitPos))) * tickSpacing;
         } else {
             // start from the word of the next tick, since the current tick state doesn't matter
             (int16 wordPos, uint8 bitPos) = _getPositionOfInitializedTickWithinOneWord(compressed + 1);
@@ -286,8 +311,9 @@ library UniswapV3Broker {
             initialized = masked != 0;
             // overflow/underflow is possible, but prevented externally by limiting both tickSpacing and tick
             next = initialized
-                ? (compressed + 1 + int24(BitMath.leastSignificantBit(masked) - bitPos)) * tickSpacing
-                : (compressed + 1 + int24(type(uint8).max - bitPos)) * tickSpacing;
+                ? (compressed + 1 + int24(int24(uint24(BitMath.leastSignificantBit(masked))) - int24(uint24(bitPos)))) *
+                    tickSpacing
+                : (compressed + 1 + int24(int24(uint24(type(uint8).max)) - int24(uint24(bitPos)))) * tickSpacing;
         }
     }
 
@@ -319,6 +345,6 @@ library UniswapV3Broker {
     /// @dev this function is Uniswap's TickBitmap.position()
     function _getPositionOfInitializedTickWithinOneWord(int24 tick) private pure returns (int16 wordPos, uint8 bitPos) {
         wordPos = int16(tick >> 8);
-        bitPos = uint8(tick % 256);
+        bitPos = uint8(uint8(int8(tick)) % 256);
     }
 }
